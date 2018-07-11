@@ -25,6 +25,10 @@ import tensorflow.contrib.slim as slim
 from tensorflow import flags
 
 FLAGS = flags.FLAGS
+flags.DEFINE_integer(
+    "moe_num_mixtures", 2,
+    "The number of mixtures (excluding the dummy 'expert') used for MoeModel.")
+
 flags.DEFINE_integer("iterations", 30,
                      "Number of frames per batch for DBoF.")
 flags.DEFINE_bool("dbof_add_batch_norm", True,
@@ -234,3 +238,103 @@ class LstmModel(models.BaseModel):
         model_input=state[-1].h,
         vocab_size=vocab_size,
         **unused_params)
+class FrameLevelMoeModel(models.BaseModel):
+  def create_model(self, model_input, vocab_size, num_frames,
+                   l2_penalty=1e-4, is_training=True, **unused):
+
+    num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
+    
+    inter_f_mean, inter_f_var = tf.nn.moments(model_input, [1])
+    inter_f_std = tf.sqrt(inter_f_var)
+
+    kk = 5
+    xt = tf.transpose(model_input, perm=[0,2,1])
+    tk = tf.nn.top_k(xt, kk).values
+    topk = tf.reshape(tk, [-1, kk * tk.get_shape().as_list()[1]])
+
+    inter_f_feats = tf.concat([inter_f_mean, inter_f_std, topk], 1)
+
+    gate_activations = slim.fully_connected(
+      inter_f_feats,
+      vocab_size * (num_mixtures + 1),
+      activation_fn=None,
+      biases_initializer=None,
+      weights_regularizer=slim.l2_regularizer(l2_penalty),
+      scope="gates")
+    expert_activations = slim.fully_connected(
+      inter_f_feats,
+      vocab_size * num_mixtures,
+      activation_fn=None,
+      weights_regularizer=slim.l2_regularizer(l2_penalty),
+      scope="experts")
+    
+    gating_distribution = tf.nn.softmax(tf.reshape(
+      gate_activations,
+      [-1, num_mixtures + 1]))  # (Batch * #Labels) x (num_mixtures + 1)
+    expert_distribution = tf.nn.sigmoid(tf.reshape(
+      expert_activations,
+      [-1, num_mixtures]))  # (Batch * #Labels) x num_mixtures
+
+    final_probabilities_by_class_and_batch = tf.reduce_sum(
+      gating_distribution[:, :num_mixtures] * expert_distribution, 1)
+    final_probabilities = tf.reshape(final_probabilities_by_class_and_batch,
+                                     [-1, vocab_size])
+    return {"predictions": final_probabilities}
+
+class FrameLevelCg2MoeModel(models.BaseModel):
+  def create_model(self, model_input, vocab_size, num_frames,
+                   l2_penalty=1e-4, is_training=True, **unused):
+    
+    num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
+
+    # extract time independent features on the fly
+    inter_f_mean, inter_f_var = tf.nn.moments(model_input, [1])
+    inter_f_std = tf.sqrt(inter_f_var)
+    kk = 5
+    xt = tf.transpose(model_input, perm=[0,2,1])
+    tk = tf.nn.top_k(xt, kk).values
+    topk = tf.reshape(tk, [-1, kk * tk.get_shape().as_list()[1]])
+    inter_f_feats = tf.concat([inter_f_mean, inter_f_std, topk], 1)
+    numx = inter_f_feats.get_shape().as_list()[1]
+    
+    # first CG
+    w = tf.Variable(tf.truncated_normal([numx,numx], stddev=0.1), name="w")
+    b = tf.Variable(tf.zeros([numx]), name="b")
+    cg = tf.multiply( tf.nn.sigmoid(tf.matmul(inter_f_feats, w) + b),
+                      inter_f_feats)
+
+    # MoE
+    gate_activations = slim.fully_connected(
+      cg,
+      vocab_size * (num_mixtures + 1),
+      activation_fn=None,
+      biases_initializer=None,
+      weights_regularizer=slim.l2_regularizer(l2_penalty),
+      scope="gates")
+    expert_activations = slim.fully_connected(
+      cg,
+      vocab_size * num_mixtures,
+      activation_fn=None,
+      weights_regularizer=slim.l2_regularizer(l2_penalty),
+      scope="experts")
+    
+    gating_distribution = tf.nn.softmax(tf.reshape(
+      gate_activations,
+      [-1, num_mixtures + 1]))  # (Batch * #Labels) x (num_mixtures + 1)
+    expert_distribution = tf.nn.sigmoid(tf.reshape(
+      expert_activations,
+      [-1, num_mixtures]))  # (Batch * #Labels) x num_mixtures
+    
+    final_probabilities_by_class_and_batch = tf.reduce_sum(
+      gating_distribution[:, :num_mixtures] * expert_distribution, 1)
+    final_probabilities = tf.reshape(final_probabilities_by_class_and_batch,
+                                     [-1, vocab_size])
+
+    # second CG
+    w2 = tf.Variable(tf.truncated_normal([vocab_size,vocab_size], stddev=0.1), name="w2")
+    b2 = tf.Variable(tf.zeros([vocab_size]), name="b2")
+    cg2 = tf.multiply( tf.nn.sigmoid(tf.matmul(final_probabilities, w2) + b2),
+                       final_probabilities)
+
+    return {"predictions": cg2}
+
