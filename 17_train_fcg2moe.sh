@@ -1,22 +1,18 @@
+BUCKET_NAME=gs://reim2zk_us
 NAME=${0%.*}
-
-INPUT_DIR=${HOME}/yt8m/frame
-YT8M=${PWD}/youtube-8m
-
-OUT_DIR=${PWD}/out_${NAME}
-TRAIN_DIR=${PWD}/out_${NAME}/model
-
-[ -d ${OUT_DIR} ] || mkdir -p ${OUT_DIR}
-
-python ${YT8M}/train.py \
-       --frame_features \
-       --model=FrameLevelLogisticModel \
-       --feature_names='rgb,audio' \
-       --feature_sizes='1024,128' \
-       --train_data_pattern=${INPUT_DIR}/train*.tfrecord \
-       --train_dir ${TRAIN_DIR} \
-       --start_new_model >> ${OUT_DIR}/train.log 2>&1
-
+JOB_NAME=yt8m_${NAME}; gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--runtime-version 1.4 \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/2/frame/train/train*.tfrecord' \
+--frame_features \						   
+--model=FrameLevelCg2MoeModel \
+--feature_names='rgb,audio' \
+--feature_sizes='1024,128' \
+--train_dir=$BUCKET_NAME/$JOB_NAME \
+--start_new_model       
 
 #LANG=C; date > ${OUT_DIR}/eval.log
 #python ${YT8M}/eval.py \
