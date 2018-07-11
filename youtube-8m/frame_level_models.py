@@ -26,7 +26,7 @@ from tensorflow import flags
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer(
-    "moe_num_mixtures", 2,
+    "fmoe_num_mixtures", 2,
     "The number of mixtures (excluding the dummy 'expert') used for MoeModel.")
 
 flags.DEFINE_integer("iterations", 30,
@@ -242,7 +242,7 @@ class FrameLevelMoeModel(models.BaseModel):
   def create_model(self, model_input, vocab_size, num_frames,
                    l2_penalty=1e-4, is_training=True, **unused):
 
-    num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
+    num_mixtures = num_mixtures or FLAGS.fmoe_num_mixtures
     
     inter_f_mean, inter_f_var = tf.nn.moments(model_input, [1])
     inter_f_std = tf.sqrt(inter_f_var)
@@ -285,7 +285,7 @@ class FrameLevelCg2MoeModel(models.BaseModel):
   def create_model(self, model_input, vocab_size, num_frames,
                    l2_penalty=1e-4, is_training=True, **unused):
     
-    num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
+    num_mixtures = num_mixtures or FLAGS.fmoe_num_mixtures
 
     # extract time independent features on the fly
     inter_f_mean, inter_f_var = tf.nn.moments(model_input, [1])
