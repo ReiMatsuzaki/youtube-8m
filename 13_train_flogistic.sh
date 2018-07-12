@@ -1,7 +1,6 @@
 BUCKET_NAME=gs://reim2zk_us
 JOB_NAME=yt8m_13_flogistic
 TRAIN_DIR=$BUCKET_NAME/yt8m_13_flogistic
-
 gcloud --verbosity=debug ml-engine jobs \
 submit training  $JOB_NAME \
 --runtime-version 1.4 \
