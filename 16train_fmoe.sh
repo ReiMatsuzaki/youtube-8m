@@ -12,7 +12,7 @@ submit training $JOB_NAME \
 --feature_names='rgb,audio' \
 --feature_sizes='1024,128' \
 --train_dir=$BUCKET_NAME/$JOB_NAME \
---start_new_model       
+--start_new_model
 
 #LANG=C; date > ${OUT_DIR}/eval.log
 #python ${YT8M}/eval.py \
