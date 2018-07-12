@@ -8,8 +8,9 @@ submit training  $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.train \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
 --config=youtube-8m/cloudml-gpu.yaml \
--- --train_data_pattern='gs://youtube8m-ml-us-east1/2/frame/train/train*.tfrecord' \
+-- \
 --frame_features=True \
+--train_data_pattern='gs://youtube8m-ml-us-east1/2/frame/train/train*.tfrecord' \
 --model=FrameLevelLogisticModel \
 --feature_names='rgb,audio' \
 --feature_sizes='1024,128' \

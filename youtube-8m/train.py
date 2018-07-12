@@ -30,6 +30,7 @@ from tensorflow import flags
 from tensorflow import gfile
 from tensorflow import logging
 from tensorflow.python.client import device_lib
+from tensorflow.python.lib.io import file_io
 import utils
 
 FLAGS = flags.FLAGS
@@ -391,7 +392,7 @@ class Trainer(object):
     }
     flags_json_path = os.path.join(FLAGS.train_dir, "model_flags.json")
     if os.path.exists(flags_json_path):
-      existing_flags = json.load(open(flags_json_path))
+      existing_flags = json.load(file_io.FileIO(flags_json_path, mode="r"))
       if existing_flags != model_flags_dict:
         logging.error("Model flags do not match existing file %s. Please "
                       "delete the file, change --train_dir, or pass flag "
@@ -402,7 +403,7 @@ class Trainer(object):
         exit(1)
     else:
       # Write the file.
-      with open(flags_json_path, "w") as fout:
+      with file_io.FileIO(flags_json_path, mode="w") as fout:
         fout.write(json.dumps(model_flags_dict))
 
     target, device_fn = self.start_server_if_distributed()
