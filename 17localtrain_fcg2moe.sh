@@ -4,7 +4,8 @@ gcloud --verbosity=debug ml-engine local train \
 --package-path=youtube-8m --module-name=youtube-8m.train \
 -- --train_data_pattern=${HOME}/calc/2018/youtube-8m/frame/train*.tfrecord \
 --frame_features=True \
---model=FrameLevelCg2MoeModel \
+--model=MeanStdVideoModel \
+--video_level_classifier_model=Cg2MoeModel \
 --feature_names='rgb,audio' \
 --feature_sizes='1024,128' \
 --train_dir=out_17localtrain_fcg2moe \

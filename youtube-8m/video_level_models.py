@@ -19,7 +19,7 @@ import models
 import tensorflow as tf
 import utils
 
-from tensorflow import flags
+from tensorflow import flags, logging
 import tensorflow.contrib.slim as slim
 
 FLAGS = flags.FLAGS
@@ -74,7 +74,10 @@ class MoeModel(models.BaseModel):
       batch_size x num_classes.
     """
     num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
-
+    
+    logging.info('MoeModel.create_model begin')
+    logging.info('num_mixtures: {0}'.format(num_mixtures))
+    
     gate_activations = slim.fully_connected(
         model_input,
         vocab_size * (num_mixtures + 1),
@@ -371,7 +374,7 @@ class CgMoeModel(models.BaseModel):
                                      [-1, vocab_size])
     return {"predictions": final_probabilities}    
     
-class Cg2MoeModel(models.BaseModel):
+class old_Cg2MoeModel(models.BaseModel):
   """
   CG(Context Gating) is added before and after the MoE(Mixture of Experts)
   """
@@ -381,9 +384,13 @@ class Cg2MoeModel(models.BaseModel):
                    num_mixtures=None,
                    l2_penalty=1e-8,
                    **unused_params):
+
+    logging.info('Cg2MoeModel.create_model begin')
+
     num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
 
-    numx = 128+1024
+    numx = model_input.get_shape().as_list()[1]
+    logging.info('numx: {0}'.format(numx))
 
     w = tf.Variable(tf.truncated_normal([numx,numx], stddev=0.1), name="w")
     b = tf.Variable(tf.zeros([numx]), name="b")
@@ -423,7 +430,7 @@ class Cg2MoeModel(models.BaseModel):
 
     return {"predictions": cg2}
     
-
+  
 class Cg2MoNN2LModel(models.BaseModel):
   """
   CG(Context Gating) is added before and after MoNN(Mixture of Neural Networks).
@@ -568,3 +575,64 @@ class Cg2MoNN3LModel(models.BaseModel):
                        final_probabilities)
 
     return {"predictions": cg2}
+class Cg2MoeModel(models.BaseModel):
+  """
+  CG(Context Gating) is added before and after the MoE(Mixture of Experts)
+  """
+  def create_model(self,
+                   model_input,
+                   vocab_size,
+                   num_mixtures=None,
+                   l2_penalty=1e-8,
+                   **unused_params):
+
+    logging.info('Cg2MoeModel.create_model begin')
+
+    num_mixtures = num_mixtures or FLAGS.moe_num_mixtures
+
+    numx = model_input.get_shape().as_list()[1]
+    logging.info('num_mixtures: {0}'.format(num_mixtures))
+    logging.info('numx: {0}'.format(numx))
+
+    w1 = tf.get_variable("w1", shape=[numx,numx],
+                        initializer=tf.truncated_normal_initializer(stddev=0.1))
+    b1 = tf.get_variable("b1", shape=[numx],
+                        initializer=tf.zeros_initializer())
+    cg1 = tf.multiply( tf.nn.sigmoid(tf.matmul(model_input, w1) + b1),
+                       model_input)
+                     
+    gate_activations = slim.fully_connected(
+      cg1,
+      vocab_size * (num_mixtures + 1),
+      activation_fn=None,
+      biases_initializer=None,
+      weights_regularizer=slim.l2_regularizer(l2_penalty),
+      scope="gates")
+    expert_activations = slim.fully_connected(
+        cg1,
+        vocab_size * num_mixtures,
+        activation_fn=None,
+        weights_regularizer=slim.l2_regularizer(l2_penalty),
+        scope="experts")
+
+    gating_distribution = tf.nn.softmax(tf.reshape(
+        gate_activations,
+        [-1, num_mixtures + 1]))  # (Batch * #Labels) x (num_mixtures + 1)
+    expert_distribution = tf.nn.sigmoid(tf.reshape(
+        expert_activations,
+        [-1, num_mixtures]))  # (Batch * #Labels) x num_mixtures
+
+    final_probabilities_by_class_and_batch = tf.reduce_sum(
+        gating_distribution[:, :num_mixtures] * expert_distribution, 1)
+    final_probabilities = tf.reshape(final_probabilities_by_class_and_batch,
+                                     [-1, vocab_size])
+
+    w2 = tf.get_variable("w2", shape=[vocab_size,vocab_size],
+                        initializer=tf.truncated_normal_initializer(stddev=0.1))
+    b2 = tf.get_variable("b2", shape=[vocab_size],
+                        initializer=tf.zeros_initializer())
+    cg2 = tf.multiply( tf.nn.sigmoid(tf.matmul(final_probabilities, w2) + b2),
+                       final_probabilities)
+
+    return {"predictions": cg2}
+    
