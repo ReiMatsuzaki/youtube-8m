@@ -10,9 +10,11 @@ submit training $JOB_NAME \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/2/frame/train/train*.tfrecord' \
 --frame_features=True \
 --model=FrameLevelMoeModel \
+--num_topk=3 \
 --feature_names='rgb,audio' \
 --feature_sizes='1024,128' \
 --train_dir=$TRAIN_DIR \
 --start_new_model
+
 
 
