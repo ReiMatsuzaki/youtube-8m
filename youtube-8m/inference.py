@@ -27,6 +27,7 @@ from tensorflow import app
 from tensorflow import flags
 from tensorflow import gfile
 from tensorflow import logging
+from tensorflow.python.lib.io import file_io
 
 import eval_util
 import losses
@@ -198,10 +199,11 @@ def main(unused_argv):
     tarfile.open(FLAGS.input_model_tgz).extractall(FLAGS.untar_model_dir)
     FLAGS.train_dir = FLAGS.untar_model_dir
 
+  # Modified by R.M. to use tensorflow IO.
   flags_dict_file = os.path.join(FLAGS.train_dir, "model_flags.json")
-  if not os.path.exists(flags_dict_file):
+  if not file_io.file_exists(flags_dict_file):
     raise IOError("Cannot find %s. Did you run eval.py?" % flags_dict_file)
-  flags_dict = json.loads(open(flags_dict_file).read())
+  flags_dict = json.loads(file_io.FileIO(flags_dict_file, mode="r").read())
 
   # convert feature_names and feature_sizes to lists of values
   feature_names, feature_sizes = utils.GetListOfFeatureNamesAndSizes(

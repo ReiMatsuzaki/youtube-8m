@@ -1,5 +1,5 @@
 BUCKET_NAME=gs://reim2zk_us
-JOB_NAME=yt8m_16train_fcg2moe_$(date +%Y%m%d_%H%M%S)
+JOB_NAME=yt8m_17train_fcg2moe_$(date +%Y%m%d_%H%M%S)
 TRAIN_DIR=$BUCKET_NAME/yt8m_17_fcg2moe
 gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
@@ -13,6 +13,6 @@ submit training $JOB_NAME \
 --video_level_classifier=Cg2MoeModel \
 --feature_names='rgb,audio' \
 --feature_sizes='1024,128' \
---train_dir=$BUCKET_NAME/$JOB_NAME \
+--train_dir=$TRAIN_DIR \
 --start_new_model
 
