@@ -282,7 +282,7 @@ class FrameLevelMoeModel(models.BaseModel):
   
 class MeanStdTopkVideoModel(models.BaseModel):
   def create_model(self, model_input, vocab_size, num_frames,
-                   l2_penalty=1e-4, is_training=True, **unused):
+                   l2_penalty=1e-8, is_training=True, **unused):
 
     num_mixtures = FLAGS.fmoe_num_mixtures
     
@@ -313,7 +313,7 @@ class MeanStdTopkVideoModel(models.BaseModel):
 
 class MeanStdVideoModel(models.BaseModel):
   def create_model(self, model_input, vocab_size, num_frames,
-                   l2_penalty=1e-4, is_training=True, **unused):
+                   l2_penalty=1e-8, is_training=True, **unused):
 
     logging.info('FrameLevelMeanStdVideoModel.create_model')
     
@@ -327,6 +327,7 @@ class MeanStdVideoModel(models.BaseModel):
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
     return aggregated_model().create_model(
-        model_input=inter_f_feats,
-        vocab_size=vocab_size,
-        **unused)
+      model_input=inter_f_feats,
+      vocab_size=vocab_size,
+      l2_penalty=l2_penalty,
+      **unused)

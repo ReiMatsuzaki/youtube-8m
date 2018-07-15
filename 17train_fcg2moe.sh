@@ -14,5 +14,6 @@ submit training $JOB_NAME \
 --feature_names='rgb,audio' \
 --feature_sizes='1024,128' \
 --train_dir=$TRAIN_DIR \
---start_new_model
+--start_new_model \
+--batch_size=512
 
