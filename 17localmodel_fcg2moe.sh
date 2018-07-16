@@ -3,11 +3,12 @@
 BUCKET_NAME=gs://reim2zk_us
 TRAIN_DIR=$BUCKET_NAME/yt8m_17_fcg2moe
 
-out_dir=out_17_fcg2moe
-model_dir=${out_dir}/17_model
-model_tgz=${model_dir}.tgz
+OUT_DIR=out_17_fcg2moe
+MODEL_NAME=model_17_fcg2moe
 
-mkdir -p $model_dir
-gsutil cp $TRAIN_DIR/inference_model* $model_dir
-gsutil cp $TRAIN_DIR/model_flags.json $model_dir/
-tar -zcvf $model_tgz $model_dir
+mkdir -p $OUT_DIR/$MODEL_NAME
+gsutil cp $TRAIN_DIR/inference_model* $OUT_DIR/$MODEL_NAME
+gsutil cp $TRAIN_DIR/model_flags.json $OUT_DIR/$MODEL_NAME
+cd $OUT_DIR; tar zcvf $MODEL_NAME.tgz $MODEL_NAME/
+
+

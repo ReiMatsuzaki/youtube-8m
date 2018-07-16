@@ -5,3 +5,4 @@ out_*
 frame/
 video/
 tmp*
+*.tgz
