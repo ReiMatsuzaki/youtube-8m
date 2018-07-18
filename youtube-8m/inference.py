@@ -14,6 +14,10 @@
 
 """Binary for generating predictions over a set of videos."""
 
+# for fixing import error in Gcloud ML
+import sys
+sys.path.append("/root/.local/lib/python3.5/site-packages/youtube-8m")
+
 import os
 import glob
 import json
