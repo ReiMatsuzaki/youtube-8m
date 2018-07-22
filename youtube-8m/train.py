@@ -13,6 +13,9 @@
 # limitations under the License.
 """Binary for training Tensorflow models on the YouTube-8M dataset."""
 
+import sys
+sys.path.append("/root/.local/lib/python3.5/site-packages/youtube-8m")
+
 import json
 import os
 import time

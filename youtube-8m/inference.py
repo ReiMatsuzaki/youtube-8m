@@ -88,7 +88,7 @@ def format_lines(video_ids, predictions, top_k):
             for class_index in top_indices]
     line = sorted(line, key=lambda p: -p[1])
     yield video_ids[video_index].decode('utf-8') + "," + " ".join(
-        "%i %g" % (label, score) for (label, score) in line) + "\n"
+      "%i %g" % (label, score) for (label, score) in line) + "\n"
 
 
 def get_input_data_tensors(reader, data_pattern, batch_size, num_readers=1):
@@ -198,7 +198,7 @@ def main(unused_argv):
       raise ValueError("You cannot supply --train_dir if supplying "
                        "--input_model_tgz")
     # Untar.
-    if not os.path.exists(FLAGS.untar_model_dir):
+    if not file_io.file_exists(FLAGS.untar_model_dir):
       os.makedirs(FLAGS.untar_model_dir)
     tarfile.open(FLAGS.input_model_tgz).extractall(FLAGS.untar_model_dir)
     FLAGS.train_dir = FLAGS.untar_model_dir

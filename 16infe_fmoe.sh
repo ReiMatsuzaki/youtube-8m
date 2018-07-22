@@ -16,8 +16,13 @@ submit training $JOB_NAME \
 -- --input_data_pattern='gs://youtube8m-ml-us-east1/2/frame/test/test*.tfrecord' \
 --frame_features=True \
 --train_dir=$TRAIN_DIR \
---output_file=$TRAIN_DIR/submission_16_fmoe.csv \
---output_model_tgz=model_16_fmoe.tgz
+--batch_size=1024 \
+num_readers=4 \
+--output_file=$TRAIN_DIR/submission_16_fmoe.csv
+
+
+
+#--output_model_tgz=model_16_fmoe.tgz
 
 
 
